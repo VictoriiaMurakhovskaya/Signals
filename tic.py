@@ -1,7 +1,7 @@
 START_BIT = 83
 START_BIT_EXTENSION = 15
 STROBE_LENGTH = 84
-STROBE_SPACE = 48
+STROBE_SPACE = 40
 
 class Tic:
     """ конструктор класса """

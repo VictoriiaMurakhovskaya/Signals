@@ -93,7 +93,7 @@ def main_method(filename=None):
     outputfilename = filename[:filename.index('.')]
     json_result = make_json(res)
     with open(outputfilename + '.json', 'w') as f:
-        json.dump(json_result, f)
+        json.dump(json_result, f, indent=4)
 
     # формирование данных для текстового файла
     textarray = []
@@ -108,11 +108,11 @@ def main_method(filename=None):
     # запись в текстовый файл
     with open(outputfilename + '.txt', 'w') as f:
         for item in textarray:
-            s = 'Номер строба: %d\t ' % (item[1])
             for subitem in item[2].keys():
+                s = 'Номер строба: %d\t ' % (item[1])
                 s += rusnames[subitem] + ' (' + subitem + '):' + str(item[2][subitem]) + '; '
-            s += '\t' + 'Номер такта: %d\n' % (item[0])
-            f.write(s)
+                s += 'Номер такта: %d\n' % (item[0])
+                f.write(s)
     mb.showinfo(title='Сообщение', message='Формирование файлов завершено')
 
 
