@@ -17,7 +17,7 @@ json_dict = {'nom_sign': 8, 'n_fil': 8, 'n_dec': 8, 'n_dfm': 8, 'poly': 8, 'n_ta
              'prUWB': 2, 'reserve':	4, 'nfaz': 2, 'input_switch': 2, 'trks': 2, 'reserve_1': 2, 'kdiv_x': 2,
              'kdiv_y': 2, 'npos': 2, 'mask_rec': 8, 'attamps': 2, 'fazkk': 2, 'fazopk':	2, 'mask_bc_ams': 2,
              'mode_cont_unit': 2, 'kpg': 2, 'align_1': 12, 'reserve_2':	12, 'por_blank': 4, 'abs_value': 8, 'kgd': 8,
-             'shgd': 8, 'trace_ctrl': 8, 'fg2':	8, 'nfgd_fu': 8, 'nlgrs': 4, 'kgrs': 4, 'shgrs': 4, 'magnitude_rel': 4,
+             'shgd': 8, 'trace_ctrl': 8, 'fg2':	8, 'nfgd_fu': 8, 'n1grs': 4, 'kgrs': 4, 'shgrs': 4, 'magnitude_rel': 4,
              'magnitude_fl': 4, 'win_size_R': 2, 'win_size_V': 2, 'thres_comb':	2, 'local_max':	2, 'mask_pol':	2,
              'prclb': 2, 'kolimp': 2, 'namplrs': 2, 'tippc': 2, 'union_pol': 2, 'comm_ent_stream': 2, 'mask232': 4,
              'hardw_model_mask': 2, 'sign_ea': 2, 'num_ad':	2, 'align_2': 12, 'nom_imob': 4, 'pr_imit':	2, 'nom_can': 2,
@@ -136,12 +136,7 @@ def make_json(ticlist):
                     strobedict.update({parametr: hex_to_float(value)})
                 elif parametr in to_plusminus:
                     # если нужно анализировать положительный/отрицательный
-                    # проверка знака
-                    if (value[:4].lower() == '00ff') | (value[:4].lower() == 'ffff'):
-                        sign = -1
-                    else:
-                        sign = 1
-                    strobedict.update({parametr: sign * int('0x' + value[4:], 16)})
+                    strobedict.update({parametr: hex_to_negative(value)})
                 else:
                     strobedict.update({parametr: int('0x' + value, 16)})
                 pointer += json_dict[parametr]
@@ -167,6 +162,21 @@ def main():
 
 def hex_to_float(hex_str):
     return round(struct.unpack('!f', bytes.fromhex(hex_str))[0], 2)
+
+
+def hex_to_negative(hex_str):
+    num_int = int('0x' + hex_str, 16)
+    num_int -= 1
+    bin_str = bin(num_int)
+    result_bin = ''
+    if bin_str[2] != '1':
+        raise ValueError
+    for ch in bin_str[3:]:
+        if ch == '0':
+            result_bin += '1'
+        else:
+            result_bin += '0'
+    return -int(result_bin, 2)
 
 
 def loadnames(xlsfile):
