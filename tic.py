@@ -34,7 +34,6 @@ class Tic:
             longdataextension = longdataextension[START_BIT_EXTENSION:]
             longdata.extend(longdataextension)
         res = []
-        print(len(longdata))
         while len(longdata) >= STROBE_LENGTH:
             res.append(longdata[0:STROBE_LENGTH])
             longdata = longdata[STROBE_LENGTH + STROBE_SPACE:]

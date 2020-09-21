@@ -78,15 +78,15 @@ def main_method(filename=None):
     # создание списка объектов, при удовлетворении входному условию
     # условие может быть изменено в функции check_bit()
     res = []
-    count = 0 # счетчик тиков, увеличивается всегда кроме случая, когда следующий тик есть продолжение предыдущего
+    count = 1 # счетчик тиков, увеличивается всегда кроме случая, когда следующий тик есть продолжение предыдущего
     for item in main_dict.keys():
         if check_bit(main_dict[item]):
             res.append(Tic(count, item, main_dict[item]))
             count += 1
         else:
             if res:
-                if not res[-1].setextention(main_dict[item]):
-                    count += 1
+                res[-1].setextention(main_dict[item])
+
 
     # формирование выходного файла
     # определение имени файла
