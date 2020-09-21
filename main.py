@@ -1,12 +1,14 @@
 from tkinter import Tk, Button, Entry, StringVar, LEFT
-from tkinter.ttk import Combobox
 from tkinter import messagebox as mb
 from tkinter import filedialog as fd
 from tkinter import LabelFrame as lf
 import re
 from tic import Tic
 import json
-import os
+import pickle
+import pandas as pd
+import xlrd
+import struct
 
 file = None
 
@@ -99,12 +101,18 @@ def main_method(filename=None):
         count = 1
         for subitem in json_result[key]:
             # номер тика, номер строба, нужное значение
-            textarray.append((key, count, subitem['mask_pol']))
+            textarray.append((key, count, subitem))
             count += 1
 
+    rusnames = param_names()
+    # запись в текстовый файл
     with open(outputfilename + '.txt', 'w') as f:
         for item in textarray:
-            f.write('Номер строба: %d\t Побитовая маска поляризаций (mask_pol): %d\t Номер такта: %d\n' % (item[1], item[2], item[0]))
+            s = 'Номер строба: %d\t ' % (item[1])
+            for subitem in item[2].keys():
+                s += rusnames[subitem] + ' (' + subitem + '):' + str(item[2][subitem]) + '; '
+            s += '\t' + 'Номер такта: %d\n' % (item[0])
+            f.write(s)
     mb.showinfo(title='Сообщение', message='Формирование файлов завершено')
 
 
@@ -125,7 +133,7 @@ def make_json(ticlist):
                 # перевод параметра в другую систему счисления и запись в словарь
                 if parametr in to_float:
                     # если параметр в списке float - параметров
-                    strobedict.update({parametr: int('0x' + value, 16)})
+                    strobedict.update({parametr: hex_to_float(value)})
                 elif parametr in to_plusminus:
                     # если нужно анализировать положительный/отрицательный
                     # проверка знака
@@ -136,6 +144,7 @@ def make_json(ticlist):
                     strobedict.update({parametr: sign * int('0x' + value[4:], 16)})
                 else:
                     strobedict.update({parametr: int('0x' + value, 16)})
+                pointer += json_dict[parametr]
             strobeslst.append(strobedict)
         write_dict.update({item.number: strobeslst})
     return write_dict
@@ -156,7 +165,22 @@ def main():
     window.mainloop()
 
 
+def hex_to_float(hex_str):
+    return round(struct.unpack('!f', bytes.fromhex(hex_str))[0], 2)
+
+
+def loadnames(xlsfile):
+    """ вспомогательный метод записи из таблицы Excel в Pickle """
+    pd.read_excel(xlsfile).to_pickle('params.pkl')
+
+
+def param_names():
+    """ возвращает словарь полных русских наименований параметров """
+    return {row['Short name']: row['Full name'] for index, row in pd.read_pickle('params.pkl').iterrows()}
+
+
 if __name__ == '__main__':
+    loadnames('fullnames.xlsx')
     main()
 
 
