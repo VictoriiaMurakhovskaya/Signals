@@ -136,7 +136,11 @@ def make_json(ticlist):
                     strobedict.update({parametr: hex_to_float(value)})
                 elif parametr in to_plusminus:
                     # если нужно анализировать положительный/отрицательный
-                    strobedict.update({parametr: hex_to_negative(value)})
+                    valuehead = value[:int(len(value)/2)]
+                    if valuehead == 'f' * len(valuehead):
+                        strobedict.update({parametr: hex_to_negative(value)})
+                    else:
+                        strobedict.update({parametr: int('0x' + value, 16)})
                 else:
                     strobedict.update({parametr: int('0x' + value, 16)})
                 pointer += json_dict[parametr]
