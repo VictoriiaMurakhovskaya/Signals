@@ -78,22 +78,22 @@ def main_method(filename=None):
     # создание списка объектов, при удовлетворении входному условию
     # условие может быть изменено в функции check_bit()
     res = []
-    count = 1 # счетчик тиков, увеличивается всегда кроме случая, когда следующий тик есть продолжение предыдущего
+    count = 0  # счетчик тиков, увеличивается всегда кроме случая, когда следующий тик есть продолжение предыдущего
     for item in main_dict.keys():
         if check_bit(main_dict[item]):
             res.append(Tic(count, item, main_dict[item]))
             count += 1
         else:
             if res:
-                res[-1].setextention(main_dict[item])
-
+                if not res[-1].setextention(main_dict[item]):
+                    count += 1
 
     # формирование выходного файла
     # определение имени файла
     outputfilename = filename[:filename.index('.')]
     json_result = make_json(res)
     with open(outputfilename + '.json', 'w') as f:
-        json.dump(json_result, f, indent=4)
+        json.dump(final_json(json_result), f, indent=4)
 
     # формирование данных для текстового файла
     textarray = []
@@ -114,6 +114,17 @@ def main_method(filename=None):
                 s += 'Номер такта: %d\n' % (item[0])
                 f.write(s)
     mb.showinfo(title='Сообщение', message='Формирование файлов завершено')
+
+
+def final_json(j_dict):
+    with open('header.json', 'r') as f:
+        header = json.load(f)
+    res = []
+    for item in j_dict.keys():
+        res.append({'tic': item, 'trpr_strobes': [dict({'ch_Nstr': True}, **k1) for k1 in j_dict[item]]})
+    header.update({'schedule': res})
+    return header
+
 
 
 def make_json(ticlist):
@@ -184,17 +195,17 @@ def hex_to_negative(hex_str):
 
 
 def loadnames(xlsfile):
-    """ вспомогательный метод записи из таблицы Excel в Pickle """
-    pd.read_excel(xlsfile).to_pickle('params.pkl')
+    """ вспомогательный метод записи из таблицы Excel в CSV """
+    pd.read_excel(xlsfile).to_csv('params.csv')
 
 
 def param_names():
     """ возвращает словарь полных русских наименований параметров """
-    return {row['Short name']: row['Full name'] for index, row in pd.read_pickle('params.pkl').iterrows()}
+    return {row['Short name']: row['Full name'] for index, row in pd.read_csv('params.csv').iterrows()}
 
 
 if __name__ == '__main__':
-    loadnames('fullnames.xlsx')
+    # loadnames('fullnames.xlsx')
     main()
 
 
