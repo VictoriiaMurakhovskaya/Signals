@@ -79,6 +79,7 @@ def main_method(filename=None):
     # условие может быть изменено в функции check_bit()
     res = []
     count = 0  # счетчик тиков, увеличивается всегда кроме случая, когда следующий тик есть продолжение предыдущего
+               # для счета по порядку следует изменить на 1
     for item in main_dict.keys():
         if check_bit(main_dict[item]):
             res.append(Tic(count, item, main_dict[item]))
@@ -86,7 +87,7 @@ def main_method(filename=None):
         else:
             if res:
                 if not res[-1].setextention(main_dict[item]):
-                    count += 1
+                    count += 1 # при счете по порядку следует убрать этот инкремент
 
     # формирование выходного файла
     # определение имени файла
