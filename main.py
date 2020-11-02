@@ -1,37 +1,30 @@
-from tkinter import Tk, Button, Entry, StringVar, LEFT
-from tkinter import messagebox as mb
-from tkinter import filedialog as fd
-from tkinter import LabelFrame as lf
 import re
 from tic import Tic
 import json
-import pickle
 import pandas as pd
-import xlrd
 import struct
+import sys
+import os
+import itertools
 
 file = None
+n = 20  # шаг разбиения тиков при записи
 
-json_dict = {'nom_sign': 8, 'n_fil': 8, 'n_dec': 8, 'n_dfm': 8, 'poly': 8, 'n_tay': 8, 'Drp': 8, 'dev':	8, 'Kpot': 8,
-             'nsdv': 8, 'nstr':	8, 'ndnstr': 8, 'dlstr': 8, 'fg1': 8, 'r_phasepoint': 8, 'tips': 4, 'nvk': 4,'nhk':	4,
+json_dict = {'parsig_nom_sign': 8, 'parsig_n_fil': 8, 'parsig_n_dec': 8, 'parsig_n_dfm': 8,
+             'parsig_poly': 8, 'parsig_n_tay': 8, 'parsig_Drp': 8, 'parsig_dev': 8, 'parsig_Kpot': 8,
+             'parsig_nsdv': 8, 'nstr':	8, 'ndnstr': 8, 'dlstr': 8, 'trpr_fg1': 8, 'trpr_r_phasepoint': 8, 'tips': 4, 'nvk': 4,'nhk':	4,
              'prUWB': 2, 'reserve':	4, 'nfaz': 2, 'input_switch': 2, 'trks': 2, 'reserve_1': 2, 'kdiv_x': 2,
-             'kdiv_y': 2, 'npos': 2, 'mask_rec': 8, 'attamps': 2, 'fazkk': 2, 'fazopk':	2, 'mask_bc_ams': 2,
+             'kdiv_y': 2, 'trpr_npos': 2, 'trpr_mask_rec': 8, 'attamps': 2, 'fazkk': 2, 'fazopk':	2, 'mask_bc_ams': 2,
              'mode_cont_unit': 2, 'kpg': 2, 'align_1': 12, 'reserve_2':	12, 'por_blank': 4, 'abs_value': 8, 'kgd': 8,
              'shgd': 8, 'trace_ctrl': 8, 'fg2':	8, 'nfgd_fu': 8, 'n1grs': 4, 'kgrs': 4, 'shgrs': 4, 'magnitude_rel': 4,
              'magnitude_fl': 4, 'win_size_R': 2, 'win_size_V': 2, 'thres_comb':	2, 'local_max':	2, 'mask_pol':	2,
-             'prclb': 2, 'kolimp': 2, 'namplrs': 2, 'tippc': 2, 'union_pol': 2, 'comm_ent_stream': 2, 'mask232': 4,
+             'prclb': 2, 'kolimp': 2, 'namplrs': 2, 'tippc': 2, 'union_pol': 2, 'comm_ent_stream': 2, 'mask232_0': 2, 'mask232_1': 2,
              'hardw_model_mask': 2, 'sign_ea': 2, 'num_ad':	2, 'align_2': 12, 'nom_imob': 4, 'pr_imit':	2, 'nom_can': 2,
              'tip_z': 2, 'nom_bar': 2, 'align_3': 12}
 
-to_float = ['n_tay', 'Drp', 'Kpot']
+to_float = ['parsig_n_tay', 'parsig_Drp', 'parsig_Kpot']
 
 to_plusminus = ['nfgd_fu', 'n1grs']
-
-
-def choose_file():
-    """ обработчик кнопки выбора файла """
-    global file
-    file.set(fd.askopenfile().name)
 
 
 def check_bit(item):
@@ -47,18 +40,21 @@ def check_bit(item):
         return False
 
 
-def main_method(filename=None):
+def main_method(fullpath=None, outputdir=None):
     """ основной метод обработки входного файла
         filename - имя обрабатываемого файла
-        если не передано, читается напрямую текстовое поле в GUI"""
+        outputdir - директория сохранения. Если параметр пустой - поддиректория текущей, output"""
     main_dict = {}
     subdict = {}
     header = ' '
-    if not filename:
-        filename = file.get()
+    if not outputdir:
+        outputdir = '\output'
+
+    if not fullpath:
+        return
 
     # чтение файла
-    with open(filename) as f:
+    with open(fullpath) as f:
         for line in f:
             match = re.search(r'[\d]{2}\:[\d]{2}\:[\d]{2}[\.]{1}[\d]*', line)
             if match:
@@ -86,15 +82,23 @@ def main_method(filename=None):
             count += 1
         else:
             if res:
-                if not res[-1].setextention(main_dict[item]):
-                    count += 1 # при счете по порядку следует убрать этот инкремент
+                res[-1].setextention(main_dict[item])
+                #count += 1 # при счете по порядку следует убрать этот инкремент
 
     # формирование выходного файла
     # определение имени файла
+    path, filename = os.path.split(fullpath)
     outputfilename = filename[:filename.index('.')]
-    json_result = make_json(res)
-    with open(outputfilename + '.json', 'w') as f:
-        json.dump(final_json(json_result), f, indent=4)
+    outputdirname = os.path.abspath(os.curdir) + outputdir + '\\'
+    if not os.path.exists(outputdirname):
+        os.mkdir(outputdirname)
+    json_result = make_json(res)  # здесь получаем длинный словарь, который можно разбивать на части
+    keys = list(json_result.keys())
+    to_write = [keys[i:i + n] for i in range(0, len(keys), n)]
+    for i in range(0, len(to_write)):
+        write_name = outputdirname + (outputfilename if i == 0 else outputfilename + '_' + str(i)) + '.json'
+        with open(write_name, 'w') as f:
+            json.dump(final_json({item: json_result[item] for item in to_write[i]}), f, indent=4)
 
     # формирование данных для текстового файла
     textarray = []
@@ -107,25 +111,25 @@ def main_method(filename=None):
 
     rusnames = param_names()
     # запись в текстовый файл
-    with open(outputfilename + '.txt', 'w') as f:
+    with open(outputdirname + outputfilename + '.txt', 'w') as f:
         for item in textarray:
             for subitem in item[2].keys():
-                s = 'Номер строба: %d\t ' % (item[1])
-                s += rusnames[subitem] + ' (' + subitem + '):' + str(item[2][subitem]) + '; '
-                s += 'Номер такта: %d\n' % (item[0])
+                s = 'Номер такта: %d' % (item[0]) + '; '
+                s +=  subitem + ':' + str(item[2][subitem]) + '  ' + rusnames[subitem] + '; '
+                s += 'Номер строба: %d\n ' % (item[1])
                 f.write(s)
-    mb.showinfo(title='Сообщение', message='Формирование файлов завершено')
+    print('Формирование файлов завершено')
 
 
 def final_json(j_dict):
-    with open('header.json', 'r') as f:
+    cdir = os.path.abspath(os.curdir)
+    with open(cdir + '\\Assets\\header.json', 'r') as f:
         header = json.load(f)
     res = []
     for item in j_dict.keys():
         res.append({'tic': item, 'trpr_strobes': [dict({'ch_Nstr': True}, **k1) for k1 in j_dict[item]]})
-    header.update({'schedule': res})
+    header.update({'shedule': res})
     return header
-
 
 
 def make_json(ticlist):
@@ -162,18 +166,18 @@ def make_json(ticlist):
 
 
 def main():
-    """ метод вызывается при запуске скрипта как основного модуля программы
-        создание графического интефейса пользователя """
-    global file
-    window = Tk()
-    file = StringVar()
-    window.geometry("330x100")
-    input1 = lf(window, text='Файл дампа')
-    Entry(input1, textvariable=file, width=25).pack(side=LEFT, padx=10, pady=10)
-    Button(input1, text='...', command=choose_file).pack(side=LEFT, padx=10, pady=10)
-    input1.pack(side=LEFT, pady=10, padx=20)
-    Button(window, text='Считать', command=main_method).pack(side=LEFT, pady=(15, 10), padx=(0,20))
-    window.mainloop()
+    # чтение строки аргументов
+    try:
+        filename = sys.argv[1]
+    except:
+        print('No source list')
+        sys.exit(1)
+
+    # чтение строк файла ресурсов
+    with open(filename, 'r') as f:
+        source = f.read().splitlines()
+    for sourcefile in source:
+        main_method(sourcefile)
 
 
 def hex_to_float(hex_str):
@@ -202,12 +206,8 @@ def loadnames(xlsfile):
 
 def param_names():
     """ возвращает словарь полных русских наименований параметров """
-    return {row['Short name']: row['Full name'] for index, row in pd.read_csv('params.csv').iterrows()}
+    return {row['Short name']: row['Full name'] for index, row in pd.read_csv('Assets/params.csv').iterrows()}
 
 
 if __name__ == '__main__':
-    # loadnames('fullnames.xlsx')
     main()
-
-
-

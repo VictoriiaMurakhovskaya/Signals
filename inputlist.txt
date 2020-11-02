@@ -1,0 +1,2 @@
+C:\PyProj\Signals\Source\914_trpr_dump.txt
+C:\PyProj\Signals\Source\trpr_prostoy_full.dump
