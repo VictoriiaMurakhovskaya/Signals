@@ -76,9 +76,18 @@ def main_method(fullpath=None, outputdir=None):
     res = []
     count = 0  # счетчик тиков, увеличивается всегда кроме случая, когда следующий тик есть продолжение предыдущего
                # для счета по порядку следует изменить на 1
+
+    # минимальное значение номера тика из 0x0040
+    base_key = list(main_dict.keys())[1]
+    base_number = main_dict[base_key]['0x0040'][6][2:]
+
     for item in main_dict.keys():
         if check_bit(main_dict[item]):
-            res.append(Tic(count, item, main_dict[item]))
+            # номер тика из 0x0040
+            cur_number = main_dict[item]['0x0040'][6][2:]
+            # расчет номер тика вычитанием минимального номера и исключением '0x'
+            deducted = hex(int(cur_number, 16) - int(base_number, 16))[2:]
+            res.append(Tic(deducted, item, main_dict[item]))
             count += 1
         else:
             if res:
@@ -114,7 +123,7 @@ def main_method(fullpath=None, outputdir=None):
     with open(outputdirname + outputfilename + '.txt', 'w') as f:
         for item in textarray:
             for subitem in item[2].keys():
-                s = 'Номер такта: %d' % (item[0]) + '; '
+                s = 'Номер такта: %s' % (item[0]) + '; '
                 s +=  subitem + ':' + str(item[2][subitem]) + '  ' + rusnames[subitem] + '; '
                 s += 'Номер строба: %d\n ' % (item[1])
                 f.write(s)
